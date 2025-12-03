@@ -1,9 +1,9 @@
-,,pipeline {
+pipeline {
     agent any
 
     environment {
-        REGISTRY = 'your-dockerhub-useeeername'
-        APP_NAME = 'your-app'
+        REGISTRY = 'hurais16'
+        APP_NAME = 'jenkins'     
         VERSION = "${env.BUILD_NUMBER}"
     }
 
