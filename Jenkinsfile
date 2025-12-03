@@ -2,7 +2,7 @@
     agent any
 
     environment {
-        REGISTRY = 'your-dockerhub-username'
+        REGISTRY = 'your-dockerhub-useeeername'
         APP_NAME = 'your-app'
         VERSION = "${env.BUILD_NUMBER}"
     }
