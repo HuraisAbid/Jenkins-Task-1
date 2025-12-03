@@ -1,5 +1,10 @@
 pipeline {
-    agent none
+    agent {
+        docker {
+            image 'node:18'
+            args '-u root:root'
+        }
+    }
 
     environment {
         REGISTRY = 'hurais16'
@@ -11,54 +16,35 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                checkout scm
+                checkout scm     // This works inside docker automatically
             }
         }
 
-        stage('Build & Test in Node Container') {
-            agent {
-                docker {
-                    image 'node:18'
-                    args '-u root:root'
-                }
+        stage('Install Dependencies') {
+            steps {
+                sh 'npm install'
             }
-            stages {
+        }
 
-                stage('Checkout Inside Container') {
-                    steps {
-                        // Checkout AGAIN inside container so repo exists inside it.
-                        checkout scm
-                    }
-                }
+        stage('Unit Tests') {
+            steps {
+                sh 'npm test -- --runTestsByPath tests/unit'
+            }
+        }
 
-                stage('Install Dependencies') {
-                    steps {
-                        sh 'npm install'
-                    }
-                }
+        stage('Integration Tests') {
+            steps {
+                sh 'npm test -- --runTestsByPath tests/integration'
+            }
+        }
 
-                stage('Unit Tests') {
-                    steps {
-                        sh 'npm test -- --runTestsByPath tests/unit'
-                    }
-                }
-
-                stage('Integration Tests') {
-                    steps {
-                        sh 'npm test -- --runTestsByPath tests/integration'
-                    }
-                }
-
-                stage('Lint') {
-                    steps {
-                        sh 'npm run lint'
-                    }
-                }
+        stage('Lint') {
+            steps {
+                sh 'npm run lint'
             }
         }
 
         stage('Build Docker Image') {
-            agent { label 'master' }
             steps {
                 sh """
                     docker build -t $REGISTRY/$APP_NAME:$VERSION .
@@ -68,7 +54,6 @@ pipeline {
         }
 
         stage('Push to DockerHub') {
-            agent { label 'master' }
             steps {
                 withCredentials([string(credentialsId: 'dockerhub-token', variable: 'TOKEN')]) {
                     sh """
@@ -81,4 +66,3 @@ pipeline {
         }
     }
 }
-
