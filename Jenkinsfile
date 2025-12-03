@@ -27,7 +27,7 @@ pipeline {
 
                 stage('Checkout Inside Container') {
                     steps {
-                        // Checkout AGAIN inside container so repo exists inside it
+                        // Checkout AGAIN inside container so repo exists inside it.
                         checkout scm
                     }
                 }
