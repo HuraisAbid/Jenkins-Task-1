@@ -73,7 +73,7 @@ pipeline {
         failure {
             mail to: 'abidhurais16@gmail.com',
                  subject: "Build Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                 body: "The build failed."
+                 body: "The build is successfully failed."
         }
     }
 }
