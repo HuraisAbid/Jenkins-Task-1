@@ -63,17 +63,4 @@ pipeline {
             }
         }
     }
-
-    post {
-        success {
-            mail to: 'abidhurais16@gmail.com',
-                 subject: "Build Successful: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                 body: "The build completed successfully."
-        }
-        failure {
-            mail to: 'abidhurais16@gmail.com',
-                 subject: "Build Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                 body: "The build is successfully failed."
-        }
-    }
 }
