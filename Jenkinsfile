@@ -10,9 +10,7 @@
     stages {
 
         stage('Checkout') {
-            steps {
-                git branch: 'main', url: 'https://github.com/your/repoc.git'
-            }
+            steps { checkout scm }
         }
 
         stage('Install Dependencies') {
