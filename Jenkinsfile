@@ -2,7 +2,6 @@ pipeline {
     agent {
         docker {
             image 'node:18'
-            args '-u root:root'
         }
     }
 
@@ -16,7 +15,13 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                checkout scm     // This works inside docker automatically
+                checkout scm     
+            }
+        }
+        stage('Debug Workspace') {
+            steps {
+                sh 'pwd'
+                sh 'ls -R'
             }
         }
 
@@ -28,7 +33,7 @@ pipeline {
 
         stage('Unit Tests') {
             steps {
-                sh 'npm test -- --runTestsByPath tests/unit'
+                sh 'npm test'
             }
         }
 
