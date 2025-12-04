@@ -169,7 +169,7 @@ pipeline {
 
         always {
             emailext(
-                to: "team@company.com",
+                to: "abidhurais16@gmail.com",
                 subject: "CI/CD Pipeline: ${currentBuild.currentResult}",
                 body: "Build & deployment with version ${VERSION} completed with status: ${currentBuild.currentResult}"
             )
