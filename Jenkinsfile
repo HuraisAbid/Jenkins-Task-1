@@ -1,6 +1,10 @@
 pipeline {
 
-    agent any   // host machine (has Docker)
+    agent any  // host machine (has Docker)
+    environment {
+        REGISTRY = 'hurais16'
+        APP_NAME = 'jenkins'
+        VERSION = "${env.BUILD_NUMBER}"
 
     stages {
 
