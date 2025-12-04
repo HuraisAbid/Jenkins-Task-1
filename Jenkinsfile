@@ -2,7 +2,7 @@ pipeline {
     agent {
         docker {
             image 'node:18'
-            args '-u root'
+            args '-u root'   // FIX: run container as root
         }
     }
 
@@ -16,9 +16,10 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                checkout scm     
+                checkout scm
             }
         }
+
         stage('Debug Workspace') {
             steps {
                 sh 'pwd'
@@ -40,7 +41,7 @@ pipeline {
 
         stage('Integration Tests') {
             steps {
-                sh 'npm test -- --runTestsByPath tests/integration'
+                sh 'npm test tests/integration'
             }
         }
 
@@ -72,4 +73,3 @@ pipeline {
         }
     }
 }
-
