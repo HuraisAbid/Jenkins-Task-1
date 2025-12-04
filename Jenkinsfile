@@ -10,10 +10,6 @@ pipeline {
 
     stages {
 
-        /* -----------------------------------------------------
-         *                  CI PIPELINE
-         * ----------------------------------------------------- */
-
         stage('Checkout') {
             steps { checkout scm }
         }
@@ -85,10 +81,6 @@ pipeline {
             }
         }
 
-        /* -----------------------------------------------------
-         *                  CD PIPELINE
-         * ----------------------------------------------------- */
-
         stage('Deploy to Dev') {
             steps {
                 sh """
@@ -126,8 +118,16 @@ pipeline {
         }
 
         stage('Integration Tests on QA') {
+            agent {
+                docker {
+                    image 'node:18'
+                    args '-u root'
+                }
+            }
             steps {
+                sh 'npm install'
                 sh 'npm test tests/integration'
+                
             }
         }
 
