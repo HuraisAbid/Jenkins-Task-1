@@ -1,10 +1,12 @@
 pipeline {
 
-    agent any  // host machine (has Docker)
+    agent any
+
     environment {
         REGISTRY = 'hurais16'
         APP_NAME = 'jenkins'
         VERSION = "${env.BUILD_NUMBER}"
+    }
 
     stages {
 
@@ -63,6 +65,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 sh "docker build -t $REGISTRY/$APP_NAME:$VERSION ."
+                sh "docker tag $REGISTRY/$APP_NAME:$VERSION $REGISTRY/$APP_NAME:latest"
             }
         }
 
