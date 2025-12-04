@@ -1,51 +1,56 @@
 pipeline {
-    agent {
-        docker {
-            image 'node:18'
-            args '-u root'   // FIX: run container as root
-        }
-    }
 
-    environment {
-        REGISTRY = 'hurais16'
-        APP_NAME = 'jenkins'
-        VERSION = "${env.BUILD_NUMBER}"
-    }
+    agent any   // host machine (has Docker)
 
     stages {
 
         stage('Checkout') {
-            steps {
-                checkout scm
-            }
-        }
-
-        stage('Debug Workspace') {
-            steps {
-                sh 'pwd'
-                sh 'ls -R'
-            }
+            steps { checkout scm }
         }
 
         stage('Install Dependencies') {
+            agent {
+                docker {
+                    image 'node:18'
+                    args '-u root'
+                }
+            }
             steps {
                 sh 'npm install'
             }
         }
 
         stage('Unit Tests') {
+            agent {
+                docker {
+                    image 'node:18'
+                    args '-u root'
+                }
+            }
             steps {
                 sh 'npm test'
             }
         }
 
         stage('Integration Tests') {
+            agent {
+                docker {
+                    image 'node:18'
+                    args '-u root'
+                }
+            }
             steps {
                 sh 'npm test tests/integration'
             }
         }
 
         stage('Lint') {
+            agent {
+                docker {
+                    image 'node:18'
+                    args '-u root'
+                }
+            }
             steps {
                 sh 'npm run lint'
             }
@@ -53,14 +58,11 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh """
-                    docker build -t $REGISTRY/$APP_NAME:$VERSION .
-                    docker tag $REGISTRY/$APP_NAME:$VERSION $REGISTRY/$APP_NAME:latest
-                """
+                sh "docker build -t $REGISTRY/$APP_NAME:$VERSION ."
             }
         }
 
-        stage('Push to DockerHub') {
+        stage('Push') {
             steps {
                 withCredentials([string(credentialsId: 'dockerhub-token', variable: 'TOKEN')]) {
                     sh """
