@@ -32,7 +32,9 @@ pipeline {
                     args '-u root'
                 }
             }
-            steps { sh 'npm install' }
+            steps { 
+                sh 'npm install' 
+            }
         }
 
         /* ---------------------------
@@ -42,20 +44,41 @@ pipeline {
             parallel {
 
                 stage('Unit Tests') {
-                    agent { docker { image 'node:18' args '-u root' } }
-                    steps { sh 'npm test' }
+                    agent {
+                        docker {
+                            image 'node:18'
+                            args '-u root'
+                        }
+                    }
+                    steps { 
+                        sh 'npm test' 
+                    }
                 }
 
                 stage('Lint') {
-                    agent { docker { image 'node:18' args '-u root' } }
-                    steps { sh 'npm run lint' }
+                    agent {
+                        docker {
+                            image 'node:18'
+                            args '-u root'
+                        }
+                    }
+                    steps { 
+                        sh 'npm run lint' 
+                    }
                 }
             }
         }
 
         stage('Integration Tests') {
-            agent { docker { image 'node:18' args '-u root' } }
-            steps { sh 'npm test tests/integration' }
+            agent {
+                docker {
+                    image 'node:18'
+                    args '-u root'
+                }
+            }
+            steps { 
+                sh 'npm test tests/integration' 
+            }
         }
 
         /* ---------------------------
@@ -111,7 +134,9 @@ pipeline {
 
         stage('Smoke Tests') {
             when { expression { params.DEPLOY_ENV == 'dev' } }
-            steps { sh "curl -f http://localhost:3000/health" }
+            steps { 
+                sh "curl -f http://localhost:3000/health" 
+            }
         }
 
         stage('Approval for QA') {
@@ -137,7 +162,12 @@ pipeline {
 
         stage('Integration Tests on QA') {
             when { expression { params.DEPLOY_ENV == 'qa' } }
-            agent { docker { image 'node:18' args '-u root' } }
+            agent {
+                docker {
+                    image 'node:18'
+                    args '-u root'
+                }
+            }
             steps {
                 sh 'npm install'
                 sh 'npm test tests/integration'
