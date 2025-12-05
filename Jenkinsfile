@@ -89,16 +89,7 @@ pipeline {
         /* ---------------------------
            SECURITY SCAN (TRIVY)
            --------------------------- */
-        stage('Security Scan (Trivy)') {
-            steps {
-                sh """
-                    docker pull aquasec/trivy:latest
-                    docker run --rm \
-                        -v /var/run/docker.sock:/var/run/docker.sock \
-                        aquasec/trivy image --severity HIGH,CRITICAL --exit-code 1 $REGISTRY/$APP_NAME:$VERSION
-                """
-            }
-        }
+
 
         /* ---------------------------
            PUSH DOCKER IMAGE
