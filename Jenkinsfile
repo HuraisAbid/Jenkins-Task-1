@@ -49,6 +49,7 @@ pipeline {
             steps {
                 sh """
                     npm audit --audit-level=high || true
+                    agent { docker { image 'node:18'; args '-u root' } }
                     docker scan $REGISTRY/$APP_NAME || true
                 """
             }
