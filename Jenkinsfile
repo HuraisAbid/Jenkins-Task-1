@@ -14,8 +14,6 @@ pipeline {
     environment {
         REGISTRY = 'hurais16'
         APP_NAME = 'jenkins'
-
-        /* SEMANTIC VERSION: major.minor.buildNumber */
         VERSION = "${params.MAJOR}.${params.MINOR}.${env.BUILD_NUMBER}"
     }
 
@@ -28,35 +26,57 @@ pipeline {
         }
 
         stage('Dependency Install') {
-            agent { docker { image 'node:18' args '-u root' } }
+            agent {
+                docker {
+                    image 'node:18'
+                    args '-u root'
+                }
+            }
             steps { sh 'npm install' }
         }
 
         /* ---------------------------
-           PARALLEL TESTING ADDED HERE
+           PARALLEL TESTING
            --------------------------- */
         stage('Parallel Testing') {
             parallel {
+                
                 stage('Unit Tests') {
-                    agent { docker { image 'node:18' args '-u root' } }
+                    agent {
+                        docker {
+                            image 'node:18'
+                            args '-u root'
+                        }
+                    }
                     steps { sh 'npm test' }
                 }
+
                 stage('Lint') {
-                    agent { docker { image 'node:18' args '-u root' } }
+                    agent {
+                        docker {
+                            image 'node:18'
+                            args '-u root'
+                        }
+                    }
                     steps { sh 'npm run lint' }
                 }
             }
         }
 
         stage('Integration Tests') {
-            agent { docker { image 'node:18' args '-u root' } }
+            agent {
+                docker {
+                    image 'node:18'
+                    args '-u root'
+                }
+            }
             steps {
                 sh 'npm test tests/integration'
             }
         }
 
         /* ---------------------------
-           PART 4 — SECURITY SCANNING
+           SECURITY SCAN
            --------------------------- */
         stage('Security Scan (Trivy)') {
             steps {
@@ -90,7 +110,7 @@ pipeline {
         }
 
         /* ---------------------------
-           PART 3 — CD PIPELINE
+           CD PIPELINE
            --------------------------- */
 
         stage('Deploy to Dev') {
@@ -133,7 +153,12 @@ pipeline {
 
         stage('Integration Tests on QA') {
             when { expression { params.DEPLOY_ENV == 'qa' } }
-            agent { docker { image 'node:18' args '-u root' } }
+            agent {
+                docker {
+                    image 'node:18'
+                    args '-u root'
+                }
+            }
             steps {
                 sh 'npm install'
                 sh 'npm test tests/integration'
@@ -162,7 +187,7 @@ pipeline {
         }
 
         /* ---------------------------
-           PART 4 — METRICS LOGGING
+           METRICS LOGGING
            --------------------------- */
         stage('Log Metrics') {
             steps {
@@ -194,9 +219,9 @@ pipeline {
                 to: "abidhurais16@gmail.com",
                 subject: "CI/CD Pipeline: ${currentBuild.currentResult}",
                 body: """
-                Pipeline Completed  
-                Version: ${VERSION}  
-                Status: ${currentBuild.currentResult}  
+                Pipeline Completed<br>
+                Version: ${VERSION}<br>
+                Status: ${currentBuild.currentResult}<br>
                 Environment: ${params.DEPLOY_ENV}
                 """,
                 mimeType: "text/html"
