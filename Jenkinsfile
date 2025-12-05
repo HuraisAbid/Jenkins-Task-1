@@ -40,39 +40,22 @@ pipeline {
            --------------------------- */
         stage('Parallel Testing') {
             parallel {
-                
+
                 stage('Unit Tests') {
-                    agent {
-                        docker {
-                            image 'node:18'
-                            args '-u root'
-                        }
-                    }
+                    agent { docker { image 'node:18' args '-u root' } }
                     steps { sh 'npm test' }
                 }
 
                 stage('Lint') {
-                    agent {
-                        docker {
-                            image 'node:18'
-                            args '-u root'
-                        }
-                    }
+                    agent { docker { image 'node:18' args '-u root' } }
                     steps { sh 'npm run lint' }
                 }
             }
         }
 
         stage('Integration Tests') {
-            agent {
-                docker {
-                    image 'node:18'
-                    args '-u root'
-                }
-            }
-            steps {
-                sh 'npm test tests/integration'
-            }
+            agent { docker { image 'node:18' args '-u root' } }
+            steps { sh 'npm test tests/integration' }
         }
 
         /* ---------------------------
@@ -82,8 +65,9 @@ pipeline {
             steps {
                 sh """
                     docker pull aquasec/trivy:latest
-                    docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
-                        aquasec/trivy --exit-code 1 --severity HIGH,CRITICAL .
+                    docker run --rm \
+                        -v /var/run/docker.sock:/var/run/docker.sock \
+                        aquasec/trivy image --severity HIGH,CRITICAL --exit-code 1 $REGISTRY/$APP_NAME:$VERSION
                 """
             }
         }
@@ -153,12 +137,7 @@ pipeline {
 
         stage('Integration Tests on QA') {
             when { expression { params.DEPLOY_ENV == 'qa' } }
-            agent {
-                docker {
-                    image 'node:18'
-                    args '-u root'
-                }
-            }
+            agent { docker { image 'node:18' args '-u root' } }
             steps {
                 sh 'npm install'
                 sh 'npm test tests/integration'
@@ -205,12 +184,12 @@ pipeline {
     post {
 
         failure {
-            echo "Deployment failed! Rolling back to stable version..."
+            echo "Deployment failed! Rolling back to STABLE version..."
             sh """
-                docker pull $REGISTRY/$APP_NAME:latest
+                docker pull $REGISTRY/$APP_NAME:stable
                 docker stop prod_container || true
                 docker rm prod_container || true
-                docker run -d --name prod_container -p 80:3000 $REGISTRY/$APP_NAME:latest
+                docker run -d --name prod_container -p 80:3000 $REGISTRY/$APP_NAME:stable
             """
         }
 
