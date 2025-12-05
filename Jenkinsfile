@@ -167,7 +167,7 @@ pipeline {
         stage('Log Metrics') {
             steps {
                 sh """
-                    echo "BUILD=${BUILD_NUMBER}, VERSION=${VERSION}, STATUS=${currentBuild.currentResult}, TIME=$(date)" \
+                    echo "BUILD=${BUILD_NUMBER}, VERSION=${VERSION}, STATUS=${currentBuild.currentResult}, TIME=\$(date)" \
                     >> pipeline_metrics.log
                 """
             }
