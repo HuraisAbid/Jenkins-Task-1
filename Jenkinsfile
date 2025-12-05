@@ -3,7 +3,7 @@ pipeline {
     agent any
 
     /* ---------------------------
-       PART 4 — PIPELINE PARAMETERS
+       PIPELINE PARAMETERS
        --------------------------- */
     parameters {
         string(name: 'MAJOR', defaultValue: '1', description: 'Major version')
@@ -19,7 +19,9 @@ pipeline {
 
     stages {
 
-        /* PART 2 — CI PIPELINE */
+        /* ---------------------------
+           CI PIPELINE
+           --------------------------- */
 
         stage('Checkout') {
             steps { checkout scm }
@@ -32,9 +34,7 @@ pipeline {
                     args '-u root'
                 }
             }
-            steps { 
-                sh 'npm install' 
-            }
+            steps { sh 'npm install' }
         }
 
         /* ---------------------------
@@ -50,9 +50,7 @@ pipeline {
                             args '-u root'
                         }
                     }
-                    steps { 
-                        sh 'npm test' 
-                    }
+                    steps { sh 'npm test' }
                 }
 
                 stage('Lint') {
@@ -62,9 +60,7 @@ pipeline {
                             args '-u root'
                         }
                     }
-                    steps { 
-                        sh 'npm run lint' 
-                    }
+                    steps { sh 'npm run lint' }
                 }
             }
         }
@@ -76,13 +72,22 @@ pipeline {
                     args '-u root'
                 }
             }
-            steps { 
-                sh 'npm test tests/integration' 
+            steps { sh 'npm test tests/integration' }
+        }
+
+        /* ---------------------------
+           BUILD DOCKER IMAGE
+           --------------------------- */
+        stage('Build Docker Image') {
+            steps {
+                sh "docker build -t $REGISTRY/$APP_NAME:$VERSION ."
+                sh "docker tag $REGISTRY/$APP_NAME:$VERSION $REGISTRY/$APP_NAME:latest"
+                sh "docker tag $REGISTRY/$APP_NAME:$VERSION $REGISTRY/$APP_NAME:stable"
             }
         }
 
         /* ---------------------------
-           SECURITY SCAN
+           SECURITY SCAN (TRIVY)
            --------------------------- */
         stage('Security Scan (Trivy)') {
             steps {
@@ -95,14 +100,9 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image') {
-            steps {
-                sh "docker build -t $REGISTRY/$APP_NAME:$VERSION ."
-                sh "docker tag $REGISTRY/$APP_NAME:$VERSION $REGISTRY/$APP_NAME:latest"
-                sh "docker tag $REGISTRY/$APP_NAME:$VERSION $REGISTRY/$APP_NAME:stable"
-            }
-        }
-
+        /* ---------------------------
+           PUSH DOCKER IMAGE
+           --------------------------- */
         stage('Push to Registry') {
             steps {
                 withCredentials([string(credentialsId: 'dockerhub-token', variable: 'TOKEN')]) {
@@ -134,9 +134,7 @@ pipeline {
 
         stage('Smoke Tests') {
             when { expression { params.DEPLOY_ENV == 'dev' } }
-            steps { 
-                sh "curl -f http://localhost:3000/health" 
-            }
+            steps { sh "curl -f http://localhost:3000/health" }
         }
 
         stage('Approval for QA') {
@@ -216,10 +214,10 @@ pipeline {
         failure {
             echo "Deployment failed! Rolling back to STABLE version..."
             sh """
-                docker pull $REGISTRY/$APP_NAME:stable
+                docker pull $REGISTRY/$APP_NAME:stable || true
                 docker stop prod_container || true
                 docker rm prod_container || true
-                docker run -d --name prod_container -p 80:3000 $REGISTRY/$APP_NAME:stable
+                docker run -d --name prod_container -p 80:3000 $REGISTRY/$APP_NAME:stable || true
             """
         }
 
