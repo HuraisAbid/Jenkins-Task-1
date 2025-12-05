@@ -207,10 +207,10 @@ pipeline {
         failure {
             echo "Deployment failed! Rolling back to stable version..."
             sh """
-                docker pull $REGISTRY/$APP_NAME:stable
+                docker pull $REGISTRY/$APP_NAME:latest
                 docker stop prod_container || true
                 docker rm prod_container || true
-                docker run -d --name prod_container -p 80:3000 $REGISTRY/$APP_NAME:stable
+                docker run -d --name prod_container -p 80:3000 $REGISTRY/$APP_NAME:latest
             """
         }
 
