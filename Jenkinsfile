@@ -2,9 +2,6 @@ pipeline {
 
     agent any
 
-    /* ---------------------------
-       PIPELINE PARAMETERS
-       --------------------------- */
     parameters {
         string(name: 'MAJOR', defaultValue: '1', description: 'Major version')
         string(name: 'MINOR', defaultValue: '0', description: 'Minor version')
@@ -19,9 +16,7 @@ pipeline {
 
     stages {
 
-        /* ---------------------------
-           CI PIPELINE
-           --------------------------- */
+     
 
         stage('Checkout') {
             steps { checkout scm }
@@ -37,9 +32,6 @@ pipeline {
             steps { sh 'npm install' }
         }
 
-        /* ---------------------------
-           PARALLEL TESTING
-           --------------------------- */
         stage('Parallel Testing') {
             parallel {
 
@@ -75,9 +67,7 @@ pipeline {
             steps { sh 'npm test tests/integration' }
         }
 
-        /* ---------------------------
-           BUILD DOCKER IMAGE
-           --------------------------- */
+       
         stage('Build Docker Image') {
             steps {
                 sh "docker build -t $REGISTRY/$APP_NAME:$VERSION ."
@@ -86,14 +76,7 @@ pipeline {
             }
         }
 
-        /* ---------------------------
-           SECURITY SCAN (TRIVY)
-           --------------------------- */
-
-
-        /* ---------------------------
-           PUSH DOCKER IMAGE
-           --------------------------- */
+      
         stage('Push to Registry') {
             steps {
                 withCredentials([string(credentialsId: 'dockerhub-token', variable: 'TOKEN')]) {
@@ -107,9 +90,7 @@ pipeline {
             }
         }
 
-        /* ---------------------------
-           CD PIPELINE
-           --------------------------- */
+      
 
         stage('Deploy to Dev') {
             when { expression { params.DEPLOY_ENV == 'dev' } }
@@ -184,9 +165,7 @@ pipeline {
             }
         }
 
-        /* ---------------------------
-           METRICS LOGGING
-           --------------------------- */
+   
         stage('Log Metrics') {
             steps {
                 sh """
@@ -197,9 +176,7 @@ pipeline {
         }
     }
 
-    /* ---------------------------
-       POST ACTIONS
-       --------------------------- */
+   
     post {
 
         failure {
