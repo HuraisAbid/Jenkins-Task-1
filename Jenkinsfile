@@ -95,6 +95,12 @@ pipeline {
          ------------------------------------------------------------ */
 
         stage('Deploy to OpenShift') {
+            agent{
+                docker{
+                    image 'openshift/cli:latest'
+                    args '-u root'
+                }
+            }
             steps {
                 withCredentials([string(credentialsId: 'openshift-token', variable: 'OC_TOKEN')]) {
 
