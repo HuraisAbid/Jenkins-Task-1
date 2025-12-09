@@ -12,11 +12,13 @@ pipeline {
         REGISTRY = 'hurais16'
         APP_NAME = 'jenkins'
         VERSION = "${params.MAJOR}.${params.MINOR}.${env.BUILD_NUMBER}"
+
+        // OpenShift settings — modify namespace to YOUR sandbox project
+        OPENSHIFT_NAMESPACE = "openshift-sandbox"
+        OPENSHIFT_API = "https://api.sandbox.x8i5.p1.openshiftapps.com:6443"
     }
 
     stages {
-
-     
 
         stage('Checkout') {
             steps { checkout scm }
@@ -67,7 +69,6 @@ pipeline {
             steps { sh 'npm test tests/integration' }
         }
 
-       
         stage('Build Docker Image') {
             steps {
                 sh "docker build -t $REGISTRY/$APP_NAME:$VERSION ."
@@ -76,7 +77,6 @@ pipeline {
             }
         }
 
-      
         stage('Push to Registry') {
             steps {
                 withCredentials([string(credentialsId: 'dockerhub-token', variable: 'TOKEN')]) {
@@ -90,82 +90,48 @@ pipeline {
             }
         }
 
-      
+        /* ------------------------------------------------------------
+           OPENSHIFT DEPLOY — OPTION 1 (NO YAML, using oc new-app)
+         ------------------------------------------------------------ */
 
-        stage('Deploy to Dev') {
-            when { expression { params.DEPLOY_ENV == 'dev' } }
+        stage('Deploy to OpenShift') {
             steps {
-                sh """
-                    docker pull $REGISTRY/$APP_NAME:$VERSION
-                    docker stop dev_container || true
-                    docker rm dev_container || true
-                    docker run -d --name dev_container -p 3000:3000 $REGISTRY/$APP_NAME:$VERSION
-                """
-            }
-        }
+                withCredentials([string(credentialsId: 'openshift-token', variable: 'OC_TOKEN')]) {
 
-        stage('Smoke Tests') {
-            when { expression { params.DEPLOY_ENV == 'dev' } }
-            steps { sh "curl -f http://localhost:3000/health" }
-        }
+                    sh """
+                        echo "Logging into OpenShift..."
+                        oc login $OPENSHIFT_API --token=$OC_TOKEN --insecure-skip-tls-verify=true
 
-        stage('Approval for QA') {
-            when { expression { params.DEPLOY_ENV == 'qa' } }
-            steps {
-                timeout(time: 2, unit: 'HOURS') {
-                    input message: "Approve Deployment to QA?"
+                        oc project $OPENSHIFT_NAMESPACE
+
+                        echo "Checking if app already exists..."
+                        if oc get dc $APP_NAME > /dev/null 2>&1; then
+                            echo "App exists. Triggering rollout..."
+                            oc set image dc/$APP_NAME $APP_NAME=$REGISTRY/$APP_NAME:$VERSION
+                            oc rollout latest dc/$APP_NAME
+                        else
+                            echo "App does NOT exist. Creating using oc new-app..."
+                            oc new-app $REGISTRY/$APP_NAME:$VERSION --name=$APP_NAME
+                            oc expose svc/$APP_NAME || true
+                        fi
+                    """
                 }
             }
         }
 
-        stage('Deploy to QA') {
-            when { expression { params.DEPLOY_ENV == 'qa' } }
+        stage('Smoke Test (OpenShift Route)') {
             steps {
-                sh """
-                    docker pull $REGISTRY/$APP_NAME:$VERSION
-                    docker stop qa_container || true
-                    docker rm qa_container || true
-                    docker run -d --name qa_container -p 3001:3000 $REGISTRY/$APP_NAME:$VERSION
-                """
-            }
-        }
-
-        stage('Integration Tests on QA') {
-            when { expression { params.DEPLOY_ENV == 'qa' } }
-            agent {
-                docker {
-                    image 'node:18'
-                    args '-u root'
+                script {
+                    ROUTE = sh(
+                        script: "oc get route ${APP_NAME} -o jsonpath='{.spec.host}'",
+                        returnStdout: true
+                    ).trim()
                 }
-            }
-            steps {
-                sh 'npm install'
-                sh 'npm test tests/integration'
+
+                sh "curl -f http://${ROUTE}/health"
             }
         }
 
-        stage('Approval for Prod') {
-            when { expression { params.DEPLOY_ENV == 'prod' } }
-            steps {
-                timeout(time: 2, unit: 'HOURS') {
-                    input message: "Approve Deployment to PROD?"
-                }
-            }
-        }
-
-        stage('Deploy to Prod') {
-            when { expression { params.DEPLOY_ENV == 'prod' } }
-            steps {
-                sh """
-                    docker pull $REGISTRY/$APP_NAME:$VERSION
-                    docker stop prod_container || true
-                    docker rm prod_container || true
-                    docker run -d --name prod_container -p 80:3000 $REGISTRY/$APP_NAME:$VERSION
-                """
-            }
-        }
-
-   
         stage('Log Metrics') {
             steps {
                 sh """
@@ -176,17 +142,20 @@ pipeline {
         }
     }
 
-   
     post {
 
         failure {
             echo "Deployment failed! Rolling back to STABLE version..."
-            sh """
-                docker pull $REGISTRY/$APP_NAME:stable || true
-                docker stop prod_container || true
-                docker rm prod_container || true
-                docker run -d --name prod_container -p 80:3000 $REGISTRY/$APP_NAME:stable || true
-            """
+
+            withCredentials([string(credentialsId: 'openshift-token', variable: 'OC_TOKEN')]) {
+                sh """
+                    oc login $OPENSHIFT_API --token=$OC_TOKEN --insecure-skip-tls-verify=true
+                    oc project $OPENSHIFT_NAMESPACE
+
+                    oc set image dc/$APP_NAME $APP_NAME=$REGISTRY/$APP_NAME:stable
+                    oc rollout latest dc/$APP_NAME
+                """
+            }
         }
 
         always {
